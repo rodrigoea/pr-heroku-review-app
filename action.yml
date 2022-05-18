@@ -1,7 +1,9 @@
-name: Heroku Review Application
+name: Deploy Heroku Review Apps
 
-description: Create a Heroku review app when a PR is raised by someone with write or admin access
-
+description: Deploy a Heroku Review App from GitHub
+branding:
+  icon: 'git-pull-request'
+  color: 'purple'
 inputs:
   github_token:
     required: true

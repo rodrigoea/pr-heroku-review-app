@@ -19,12 +19,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Heroku Review Application
-        uses: matmar10/pr-heroku-review-app@master
+        uses: rodrigoea/pr-heroku-review-app@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           github_label: Review App
           heroku_api_token: ${{ secrets.HEROKU_API_TOKEN }}
-          heroku_pipeline_id: b3db2bf0-081c-49a5-afa8-4f6a2443ad75
+          heroku_pipeline_id: ${{ secrets.HEROKU_PIPELINE_ID }}
 ```
 
 ## Available Configuration
@@ -35,8 +35,3 @@ jobs:
 - **github_label** - Text of what label should be added to each PR. If this label is added, it triggers a new build
 - **heroku_api_token** - Heroku API Token; generate this under your personal settings in Heroku
 - **heroku_pipeline_id** - Pipeline ID configured to use review apps. You can get this from the URL in your browser.
-
-## TODO / Roadmap
-
-- [ ] Export info about the created build to be used later
-
