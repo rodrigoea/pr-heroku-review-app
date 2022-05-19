@@ -76,9 +76,6 @@ async function run() {
       const apiUrl = `/pipelines/${herokuPipelineId}/review-apps`;
       core.debug(`Listing review apps: "${apiUrl}"`);
       const reviewApps = await heroku.get(apiUrl);
-      core.info(
-        `Listed ${reviewApps.length} review apps OK: ${reviewApps.length} apps found.`,
-      );
 
       core.debug(`Finding review app for PR #${prNumber}...`);
       const app = reviewApps.find((app) => app.pr_number === prNumber);
@@ -160,7 +157,9 @@ async function run() {
 
       if (reviewApp) {
         core.info(
-          `Found review app for PR #${prNumber} OK: ${JSON.stringify(app)}`,
+          `Found review app for PR #${prNumber} OK: ${JSON.stringify(
+            reviewApp,
+          )}`,
         );
       }
 
