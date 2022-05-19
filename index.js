@@ -79,6 +79,9 @@ async function run() {
         return null;
       }
 
+      core.info(
+        `Review app found for PR #${prNumber} OK: ${JSON.stringify(app)}`,
+      );
       return app;
     };
 
@@ -141,7 +144,6 @@ async function run() {
       };
 
       let reviewApp = await findReviewApp();
-
       let isFinished = await checkBuildStatusForReviewApp(reviewApp);
 
       if (!isFinished) {
@@ -258,14 +260,20 @@ async function run() {
     const app = await findReviewApp();
     if (app) {
       core.info('Destroying Review App');
-      await heroku.delete(`/apps/${app.id}`).catch((err) => {
+      const appId = app.app.id;
+      await heroku.delete(`/apps/${appId}`).catch((err) => {
         core.notice(`Error destroying app: ${err}`);
       });
 
-      let destroyStatus = 'deleting';
+      let isDestroyed;
 
       do {
         reviewApp = await findReviewApp();
+
+        if (!reviewApp) {
+          isDestroyed = true;
+          core.info(`Review app destroyed OK`);
+        }
 
         core.info(
           `Waiting for review app to be destroyed... ${JSON.stringify(
@@ -273,12 +281,8 @@ async function run() {
           )}`,
         );
 
-        if (reviewApp) {
-          destroyStatus = reviewApp.status;
-        }
-
         await waitSeconds(5);
-      } while (destroyStatus === 'deleting');
+      } while (!isDestroyed);
     }
 
     await createReviewApp();
