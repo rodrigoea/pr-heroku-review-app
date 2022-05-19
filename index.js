@@ -315,7 +315,17 @@ async function run() {
 
       do {
         reviewApp = await findReviewApp();
-        destroyStatus = reviewApp.status;
+
+        core.info(
+          `Waiting for review app to be destroyed... ${JSON.stringify(
+            reviewApp,
+          )}`,
+        );
+
+        if (reviewApp) {
+          destroyStatus = reviewApp.status;
+        }
+
         await waitSeconds(5);
       } while (destroyStatus === 'deleting');
 
