@@ -8,10 +8,6 @@ inputs:
   github_token:
     required: true
     description: Github access token
-  github_label:
-    required: false
-    description: Label to apply to PRs (or trigger builds when added to PR)
-    default: ''
   heroku_api_token:
     required: true
     description: Heroku API token

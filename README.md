@@ -15,6 +15,7 @@ on:
 
 jobs:
   heroku-review-application:
+    if: ${{ github.event.label.name == 'Review App' }} || contains(github.event.pull_request.labels.*.name, 'Review App') # Add This if you want to run the job based on a label - Review App
     name: Heroku Review App
     runs-on: ubuntu-latest
     steps:
@@ -22,7 +23,6 @@ jobs:
         uses: rodrigoea/pr-heroku-review-app@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          github_label: Review App
           heroku_api_token: ${{ secrets.HEROKU_API_TOKEN }}
           heroku_pipeline_id: ${{ secrets.HEROKU_PIPELINE_ID }}
 ```
@@ -31,7 +31,6 @@ jobs:
 
 ### Inputs
 
-- **github_token** - Github API access token; needs scope to add label to issue
-- **github_label** - Text of what label should be added to each PR. If this label is added, it triggers a new build
+- **github_token** - Github API access token
 - **heroku_api_token** - Heroku API Token; generate this under your personal settings in Heroku
 - **heroku_pipeline_id** - Pipeline ID configured to use review apps. You can get this from the URL in your browser.
