@@ -90,9 +90,6 @@ async function run() {
           );
           return null;
         }
-        core.info(
-          `Found review app for PR #${prNumber} OK: ${JSON.stringify(app)}`,
-        );
       } else {
         core.info(`No review app found for PR #${prNumber}`);
       }
@@ -159,11 +156,28 @@ async function run() {
         }
       };
 
-      let reviewApp;
-      let isFinished;
+      let reviewApp = await findReviewApp();
+
+      if (reviewApp) {
+        core.info(
+          `Found review app for PR #${prNumber} OK: ${JSON.stringify(app)}`,
+        );
+      }
+
+      let isFinished = await checkBuildStatusForReviewApp(reviewApp);
+
+      if (!isFinished) {
+        core.info(`Waiting for build to finish...`);
+      }
+
       do {
         reviewApp = await findReviewApp();
         isFinished = await checkBuildStatusForReviewApp(reviewApp);
+
+        if (isFinished) {
+          core.info(`Build finished OK.`);
+        }
+
         core.debug('YYYY YYYY YYYY YYYY YYYY YYYY YYYY YYYY YYYY YYYY ');
         await waitSeconds(5);
       } while (!isFinished);
