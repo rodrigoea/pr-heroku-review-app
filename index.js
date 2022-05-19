@@ -79,6 +79,9 @@ async function run() {
         return null;
       }
 
+      core.info(
+        `Review app found for PR #${prNumber} OK: ${JSON.stringify(app)}`,
+      );
       return app;
     };
 
@@ -141,7 +144,6 @@ async function run() {
       };
 
       let reviewApp = await findReviewApp();
-
       let isFinished = await checkBuildStatusForReviewApp(reviewApp);
 
       if (!isFinished) {
@@ -258,7 +260,8 @@ async function run() {
     const app = await findReviewApp();
     if (app) {
       core.info('Destroying Review App');
-      await heroku.delete(`/apps/${app.id}`).catch((err) => {
+      const appId = app.app.id;
+      await heroku.delete(`/apps/${appId}`).catch((err) => {
         core.notice(`Error destroying app: ${err}`);
       });
 
