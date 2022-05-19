@@ -1551,7 +1551,7 @@ async function run() {
         isFinished = await checkBuildStatusForReviewApp(reviewApp);
 
         if (isFinished) {
-          core.info(`Build finished OK.`);
+          core.info(`Build finished!`);
         }
 
         core.debug('YYYY YYYY YYYY YYYY YYYY YYYY YYYY YYYY YYYY YYYY ');
