@@ -1380,6 +1380,9 @@ const github = __webpack_require__(469);
 
 const VALID_EVENT = 'pull_request';
 
+const waitSeconds = (secs) =>
+  new Promise((resolve) => setTimeout(resolve, secs * 1000));
+
 async function run() {
   try {
     const githubToken = core.getInput('github_token', { required: true });
@@ -1463,9 +1466,6 @@ async function run() {
           );
           return null;
         }
-        core.info(
-          `Found review app for PR #${prNumber} OK: ${JSON.stringify(app)}`,
-        );
       } else {
         core.info(`No review app found for PR #${prNumber}`);
       }
@@ -1474,9 +1474,6 @@ async function run() {
 
     const waitReviewAppUpdated = async () => {
       core.startGroup('Ensure review app is up to date');
-
-      const waitSeconds = (secs) =>
-        new Promise((resolve) => setTimeout(resolve, secs * 1000));
 
       const checkBuildStatusForReviewApp = async (app) => {
         core.debug(`Checking build status for app: ${JSON.stringify(app)}`);
@@ -1508,13 +1505,11 @@ async function run() {
           (build) => version === build.source_blob.version,
         );
         if (!build) {
-          core.error(`Could not find build matching version ${version}.`);
-          core.setFailed(
+          core.info(`Could not find build matching version ${version}.`);
+          core.info(
             `No existing build for app ID ${appId} matches version ${version}`,
           );
-          throw new Error(
-            `Unexpected build status: "${status}" yet no matching build found`,
-          );
+          core.info(`build status: "${status}"`);
         }
         core.info(
           `Found build matching version ${version} OK: ${JSON.stringify(
@@ -1537,11 +1532,28 @@ async function run() {
         }
       };
 
-      let reviewApp;
-      let isFinished;
+      let reviewApp = await findReviewApp();
+
+      if (reviewApp) {
+        core.info(
+          `Found review app for PR #${prNumber} OK: ${JSON.stringify(app)}`,
+        );
+      }
+
+      let isFinished = await checkBuildStatusForReviewApp(reviewApp);
+
+      if (!isFinished) {
+        core.info(`Waiting for build to finish...`);
+      }
+
       do {
         reviewApp = await findReviewApp();
         isFinished = await checkBuildStatusForReviewApp(reviewApp);
+
+        if (isFinished) {
+          core.info(`Build finished OK.`);
+        }
+
         core.debug('YYYY YYYY YYYY YYYY YYYY YYYY YYYY YYYY YYYY YYYY ');
         await waitSeconds(5);
       } while (!isFinished);
@@ -1553,7 +1565,8 @@ async function run() {
 
     const createReviewApp = async () => {
       try {
-        core.startGroup('Create review app');
+        core.info('Creating new review app...');
+        core.startGroup('Creating new review app');
 
         const archiveBody = {
           owner: repoOwner,
@@ -1673,7 +1686,13 @@ async function run() {
     const app = await findReviewApp();
     if (!app) {
       await createReviewApp();
+    } else {
+      await heroku.delete(`/apps/${app.id}`);
+      core.info('Review App Destroyed -- Creating New One');
+      waitSeconds(10);
+      await createReviewApp();
     }
+
     const updatedApp = await waitReviewAppUpdated();
     outputAppDetails(updatedApp);
 
