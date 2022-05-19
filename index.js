@@ -102,9 +102,7 @@ async function run() {
           return false;
         }
         if ('deleting' === app.status) {
-          throw new Error(
-            `Unexpected app status: "${app.status}" - ${app.message} (error status: ${app.error_status})`,
-          );
+          return false;
         }
         if (!app.app) {
           throw new Error(`Unexpected app status: "${app.status}"`);
@@ -310,9 +308,18 @@ async function run() {
     if (!app) {
       await createReviewApp();
     } else {
+      core.info('Destroying Review App');
       await heroku.delete(`/apps/${app.id}`);
-      core.info('Review App Destroyed -- Creating New One');
-      waitSeconds(10);
+
+      let destroyStatus = 'deleting';
+
+      do {
+        reviewApp = await findReviewApp();
+        destroyStatus = reviewApp.status;
+        await waitSeconds(5);
+      } while (destroyStatus === 'deleting');
+
+      core.info('Creating new Review App');
       await createReviewApp();
     }
 
