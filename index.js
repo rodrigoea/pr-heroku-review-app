@@ -10,10 +10,6 @@ const waitSeconds = (secs) =>
 async function run() {
   try {
     const githubToken = core.getInput('github_token', { required: true });
-    const prLabel = core.getInput('github_label', {
-      required: false,
-      default: 'Review App',
-    });
     const herokuApiToken = core.getInput('heroku_api_token', {
       required: true,
     });
@@ -35,7 +31,6 @@ async function run() {
             repo: { id: repoId, fork: forkRepo, html_url: repoHtmlUrl },
           },
           number: prNumber,
-          // updated_at: prUpdatedAtRaw,
         },
       },
       issue: { number: issueNumber },
@@ -48,7 +43,6 @@ async function run() {
       throw new Error(`Unexpected github event trigger: ${eventName}`);
     }
 
-    // const prUpdatedAt = DateTime.fromISO(prUpdatedAtRaw);
     const sourceUrl = `${repoHtmlUrl}/tarball/${version}`;
     const forkRepoId = forkRepo ? repoId : undefined;
 
@@ -79,17 +73,12 @@ async function run() {
 
       core.debug(`Finding review app for PR #${prNumber}...`);
       const app = reviewApps.find((app) => app.pr_number === prNumber);
-      if (app) {
-        const { status } = app;
-        if ('errored' === status) {
-          core.notice(
-            `Found review app for PR #${prNumber} OK, but status is "${status}"`,
-          );
-          return null;
-        }
-      } else {
+
+      if (!app) {
         core.info(`No review app found for PR #${prNumber}`);
+        return null;
       }
+
       return app;
     };
 
@@ -152,14 +141,6 @@ async function run() {
       };
 
       let reviewApp = await findReviewApp();
-
-      if (reviewApp) {
-        core.info(
-          `Found review app for PR #${prNumber} OK: ${JSON.stringify(
-            reviewApp,
-          )}`,
-        );
-      }
 
       let isFinished = await checkBuildStatusForReviewApp(reviewApp);
 
@@ -256,30 +237,6 @@ async function run() {
       return;
     }
 
-    if ('labeled' === action) {
-      core.startGroup('PR labelled');
-      core.debug('Checking PR label...');
-      const {
-        payload: {
-          label: { name: newLabelAddedName },
-        },
-      } = github.context;
-      if (newLabelAddedName === prLabel) {
-        core.info(
-          `Checked PR label: "${newLabelAddedName}", so need to create review app...`,
-        );
-        await createReviewApp();
-        const app = await waitReviewAppUpdated();
-        outputAppDetails(app);
-      } else {
-        core.info(
-          'Checked PR label OK: "${newLabelAddedName}", no action required.',
-        );
-      }
-      core.endGroup();
-      return;
-    }
-
     // Only people that can close PRs are maintainers or the author
     // hence can safely delete review app without being collaborator
     if ('closed' === action) {
@@ -298,18 +255,12 @@ async function run() {
       return;
     }
 
-    // TODO: ensure we have permission
-    // const perms = await tools.github.repos.getCollaboratorPermissionLevel({
-    //   ...tools.context.repo,
-    //   username: tools.context.actor,
-    // });
-
     const app = await findReviewApp();
-    if (!app) {
-      await createReviewApp();
-    } else {
+    if (app) {
       core.info('Destroying Review App');
-      await heroku.delete(`/apps/${app.id}`);
+      await heroku.delete(`/apps/${app.id}`).catch((err) => {
+        core.notice(`Error destroying app: ${err}`);
+      });
 
       let destroyStatus = 'deleting';
 
@@ -328,27 +279,12 @@ async function run() {
 
         await waitSeconds(5);
       } while (destroyStatus === 'deleting');
-
-      core.info('Creating new Review App');
-      await createReviewApp();
     }
+
+    await createReviewApp();
 
     const updatedApp = await waitReviewAppUpdated();
     outputAppDetails(updatedApp);
-
-    if (prLabel) {
-      core.startGroup('Label PR');
-      core.debug(`Adding label "${prLabel}" to PR...`);
-      await octokit.rest.issues.addLabels({
-        ...repo,
-        labels: [prLabel],
-        issue_number: prNumber,
-      });
-      core.info(`Added label "${prLabel}" to PR... OK`);
-      core.endGroup();
-    } else {
-      core.debug('No label specified; will not label PR');
-    }
   } catch (err) {
     core.error(err);
     core.setFailed(err.message);
