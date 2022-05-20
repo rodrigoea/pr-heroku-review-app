@@ -1615,11 +1615,13 @@ async function run() {
     // Only people that can close PRs are maintainers or the author
     // hence can safely delete review app without being collaborator
     if ('closed' === action) {
-      core.debug('PR closed, deleting review app...');
+      core.info('PR closed, deleting review app...');
       const app = await findReviewApp();
       if (app) {
         const appId = app.app.id;
-        await heroku.delete(`/review-apps/${appId}`);
+        await heroku.delete(`/review-apps/${appId}`).catch((err) => {
+          core.notice(`Error destroying app: ${err}`);
+        });
         core.info('PR closed, deleted review app OK');
         core.endGroup();
       } else {
