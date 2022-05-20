@@ -1618,7 +1618,8 @@ async function run() {
       core.debug('PR closed, deleting review app...');
       const app = await findReviewApp();
       if (app) {
-        await heroku.delete(`/review-apps/${app.id}`);
+        const appId = app.app.id;
+        await heroku.delete(`/review-apps/${appId}`);
         core.info('PR closed, deleted review app OK');
         core.endGroup();
       } else {
